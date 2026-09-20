@@ -1,0 +1,24 @@
+{
+  "name": "postgate",
+  "version": "0.1.0",
+  "description": "Fila, aprovação humana e publicação agendada para redes sociais",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "enqueue": "tsx src/jobs/enqueue.ts",
+    "publish-due": "tsx src/jobs/publish-due.ts",
+    "retry-failed": "tsx src/jobs/retry-failed.ts",
+    "health": "tsx src/jobs/health.ts",
+    "approve-polling": "tsx src/approval/polling.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
