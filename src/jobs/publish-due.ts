@@ -8,10 +8,10 @@
  *
  *   npm run publish-due -- --dry-run   # valida tudo sem publicar nada
  */
-import { exigir } from "../config";
-import { conectar, marcarFalha, marcarPublicado, vencidos } from "../queue";
-import { publicarFoto, publicarReel, publicarStory } from "../publish/instagram";
-import { avisar } from "../approval/telegram";
+import { requireEnv } from "../config";
+import { connect, markFailed, markPublished, due } from "../queue";
+import { publishPhoto, publishReel, publishStory } from "../publish/instagram";
+import { notify } from "../approval/telegram";
 
 const SECO = process.argv.includes("--dry-run");
 
@@ -19,10 +19,10 @@ async function main(): Promise<void> {
   // Antes de tocar na fila. Um cron que nunca achou post vencido passa meses
   // "verde" sem nunca ter publicado; sem esta checagem, a primeira publicação
   // real descobriria a falta do segredo e ainda marcaria o post como falho.
-  exigir(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "META_LONG_LIVED_TOKEN", "IG_USER_ID"]);
+  requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "META_LONG_LIVED_TOKEN", "IG_USER_ID"]);
 
-  const sb = conectar();
-  const fila = await vencidos(sb);
+  const sb = connect();
+  const fila = await due(sb);
   if (fila.length === 0) {
     console.log("nenhum post vencido.");
     return;
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
       const r = midia ? await fetch(midia, { method: "HEAD" }).catch(() => null) : null;
       console.log(`  ${p.id.slice(0, 8)} (${p.kind}) mídia acessível pela Meta: ${r?.ok ? "sim" : "NÃO"}`);
       if (p.kind !== "story") {
-        console.log(`    legenda: ${p.caption.length} caracteres${p.caption.length > 2200 ? " (ACIMA do limite)" : ""}`);
+        console.log(`    legenda: ${p.caption.length} caracteres${p.caption.length > 2200 ? " (ACIMA do limit)" : ""}`);
       }
     }
     console.log("nada publicado, nada alterado.");
@@ -47,22 +47,22 @@ async function main(): Promise<void> {
     try {
       mediaId =
         p.kind === "story"
-          ? await publicarStory(p.imageUrl!)
+          ? await publishStory(p.imageUrl!)
           : p.kind === "reel"
-            ? await publicarReel(p.videoUrl!, p.caption)
-            : await publicarFoto(p.imageUrl!, p.caption);
+            ? await publishReel(p.videoUrl!, p.caption)
+            : await publishPhoto(p.imageUrl!, p.caption);
     } catch (err) {
       // Falha aqui é anterior ao post existir: nada foi ao ar. Seguro marcar
       // falho — o retry pode tentar de novo.
       const msg = err instanceof Error ? err.message : String(err);
-      await marcarFalha(sb, p.id, msg);
-      await avisar(`⚠️ Falha ao publicar: ${msg}`);
+      await markFailed(sb, p.id, msg);
+      await notify(`⚠️ Falha ao publicar: ${msg}`);
       console.error(`falha ${p.id}: ${msg}`);
       continue;
     }
 
     // Daqui para baixo o post EXISTE na rede, aconteça o que acontecer.
-    const reg = await marcarPublicado(sb, p.id, mediaId);
+    const reg = await markPublished(sb, p.id, mediaId);
     if (!reg.ok) {
       // Nunca marcar falho aqui: o post está no ar e retentar duplicaria.
       // Barulhento de propósito.
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
         "AÇÃO: marque a linha como posted à mão, ou o próximo ciclo republica.",
       ].join("\n");
       console.error(alerta);
-      await avisar(alerta);
+      await notify(alerta);
       continue;
     }
     console.log(`publicado ${p.id} → ${mediaId}`);

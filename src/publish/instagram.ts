@@ -38,7 +38,7 @@ async function post(caminho: string, params: Record<string, string>): Promise<an
  * Vídeo não fica pronto na hora: o container passa por IN_PROGRESS antes de
  * FINISHED. Publicar sem esperar devolve erro que parece de permissão.
  */
-async function esperarContainer(containerId: string, tentativas = 30): Promise<void> {
+async function waitForContainer(containerId: string, tentativas = 30): Promise<void> {
   for (let i = 0; i < tentativas; i++) {
     const res = await fetch(
       `${GRAPH}/${containerId}?fields=status_code&access_token=${env("META_LONG_LIVED_TOKEN")}`
@@ -51,29 +51,29 @@ async function esperarContainer(containerId: string, tentativas = 30): Promise<v
   throw new Error(`container ${containerId} não ficou pronto a tempo`);
 }
 
-export async function publicarFoto(imageUrl: string, caption: string): Promise<string> {
+export async function publishPhoto(imageUrl: string, caption: string): Promise<string> {
   const igUserId = env("IG_USER_ID");
   const container = await post(`${igUserId}/media`, { image_url: imageUrl, caption });
   const publicado = await post(`${igUserId}/media_publish`, { creation_id: container.id });
   return publicado.id as string;
 }
 
-/** Stories NÃO aceita legenda: o texto precisa estar na própria arte 1080x1920. */
-export async function publicarStory(imageUrl: string): Promise<string> {
+/** Stories NÃO aceita legenda: o text precisa estar na própria arte 1080x1920. */
+export async function publishStory(imageUrl: string): Promise<string> {
   const igUserId = env("IG_USER_ID");
   const container = await post(`${igUserId}/media`, { image_url: imageUrl, media_type: "STORIES" });
   const publicado = await post(`${igUserId}/media_publish`, { creation_id: container.id });
   return publicado.id as string;
 }
 
-export async function publicarReel(videoUrl: string, caption: string): Promise<string> {
+export async function publishReel(videoUrl: string, caption: string): Promise<string> {
   const igUserId = env("IG_USER_ID");
   const container = await post(`${igUserId}/media`, {
     video_url: videoUrl,
     caption,
     media_type: "REELS",
   });
-  await esperarContainer(container.id);
+  await waitForContainer(container.id);
   const publicado = await post(`${igUserId}/media_publish`, { creation_id: container.id });
   return publicado.id as string;
 }
@@ -82,7 +82,7 @@ export async function publicarReel(videoUrl: string, caption: string): Promise<s
  * O token de 60 dias expira. Renovar é uma chamada; esquecer é descobrir num
  * domingo que nada é publicado há semanas. Rode isso num cron mensal.
  */
-export async function renovarToken(): Promise<string> {
+export async function refreshToken(): Promise<string> {
   const res = await fetch(
     `${process.env.META_GRAPH_HOST ?? "https://graph.instagram.com"}/refresh_access_token` +
       `?grant_type=ig_refresh_token&access_token=${env("META_LONG_LIVED_TOKEN")}`

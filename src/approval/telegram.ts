@@ -1,15 +1,15 @@
 /**
- * O portão humano: manda o rascunho para um grupo e espera alguém decidir.
+ * O portão humano: manda o rascunho para um grupo e espera alguém decide.
  *
  * Telegram por ser o caminho mais curto entre "um agente propôs" e "uma
  * pessoa aprovou do celular", sem construir painel nenhum.
  */
-import { env, envOpcional } from "../config";
+import { env, optionalEnv } from "../config";
 import type { QueueItem } from "../types";
 
 const API = (metodo: string) => `https://api.telegram.org/bot${env("TELEGRAM_BOT_TOKEN")}/${metodo}`;
 
-export async function enviarParaAprovacao(item: QueueItem, fonte: string): Promise<number | null> {
+export async function sendForApproval(item: QueueItem, fonte: string): Promise<number | null> {
   const chatId = env("TELEGRAM_CHAT_ID");
   const legenda = [
     `*${fonte}* · ${item.kind}`,
@@ -41,21 +41,21 @@ export async function enviarParaAprovacao(item: QueueItem, fonte: string): Promi
   return json.result?.message_id ?? null;
 }
 
-export async function avisar(texto: string): Promise<void> {
-  const token = envOpcional("TELEGRAM_BOT_TOKEN");
-  const chatId = envOpcional("TELEGRAM_CHAT_ID");
-  if (!token || !chatId) return; // avisar é melhor-esforço: nunca derruba o job
+export async function notify(text: string): Promise<void> {
+  const token = optionalEnv("TELEGRAM_BOT_TOKEN");
+  const chatId = optionalEnv("TELEGRAM_CHAT_ID");
+  if (!token || !chatId) return; // notify é melhor-esforço: nunca derruba o job
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text: texto }),
+    body: JSON.stringify({ chat_id: chatId, text: text }),
   }).catch(() => {});
 }
 
-export async function responderBotao(callbackQueryId: string, texto: string): Promise<void> {
+export async function answerButton(callbackQueryId: string, text: string): Promise<void> {
   await fetch(API("answerCallbackQuery"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ callback_query_id: callbackQueryId, text: texto }),
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text: text }),
   }).catch(() => {});
 }

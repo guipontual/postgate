@@ -2,17 +2,17 @@
  * Devolve posts falhos para a fila de agendados.
  *
  * Separado do publicador de propósito: retentar é decisão, não automatismo.
- * Post que falhou por legenda longa ou imagem inacessível volta a falhar
+ * Post que falhou por legenda longa ou image inacessível volta a falhar
  * sozinho — e cada tentativa gasta chamada de API.
  */
-import { exigir } from "../config";
-import { conectar, TABELA } from "../queue";
+import { requireEnv } from "../config";
+import { connect, TABLE } from "../queue";
 
 async function main(): Promise<void> {
-  exigir(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
-  const sb = conectar();
+  requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
+  const sb = connect();
 
-  const { data, error } = await sb.from(TABELA).select("id, error").eq("status", "failed");
+  const { data, error } = await sb.from(TABLE).select("id, error").eq("status", "failed");
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) {
     console.log("nenhum post falho.");
@@ -27,7 +27,7 @@ async function main(): Promise<void> {
     return;
   }
   const { error: e2 } = await sb
-    .from(TABELA)
+    .from(TABLE)
     .update({ status: "scheduled", error: null, scheduled_at: null })
     .eq("status", "failed");
   if (e2) throw new Error(e2.message);

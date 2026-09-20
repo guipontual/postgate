@@ -88,7 +88,7 @@ npm install
 cp .env.example .env
 psql "$DATABASE_URL" -f migrations/0001_postgate_queue.sql
 
-echo '[{"ref":"1","link":"https://exemplo.com","imagem":"https://picsum.photos/1080","texto":"Primeiro post."}]' > conteudo.json
+echo '[{"ref":"1","link":"https://exemplo.com","image":"https://picsum.photos/1080","text":"Primeiro post."}]' > content.json
 
 npm run enqueue                  # propõe e manda o card para o Telegram
 npm run approve-polling          # aprove pelo celular

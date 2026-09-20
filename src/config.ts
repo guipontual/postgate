@@ -13,12 +13,12 @@ export function env(nome: string): string {
   return valor;
 }
 
-export function envOpcional(nome: string): string | null {
+export function optionalEnv(nome: string): string | null {
   return process.env[nome] || null;
 }
 
 /** Confere um conjunto de uma vez e lista TUDO que falta, não só o primeiro. */
-export function exigir(nomes: string[]): void {
+export function requireEnv(nomes: string[]): void {
   const faltando = nomes.filter((n) => !process.env[n]);
   if (faltando.length > 0) {
     throw new Error(

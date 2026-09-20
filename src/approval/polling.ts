@@ -11,13 +11,13 @@
  *   npm run approve-polling
  */
 import { env } from "../config";
-import { conectar } from "../queue";
-import { tratarUpdate, type TelegramUpdate } from "./handler";
+import { connect } from "../queue";
+import { handleUpdate, type TelegramUpdate } from "./handler";
 
 const API = (m: string) => `https://api.telegram.org/bot${env("TELEGRAM_BOT_TOKEN")}/${m}`;
 
 async function main(): Promise<void> {
-  const sb = conectar();
+  const sb = connect();
   let offset = 0;
   console.log("aguardando decisões no Telegram (Ctrl+C para sair)");
 
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
       const json = (await res.json()) as { ok: boolean; result?: ({ update_id: number } & TelegramUpdate)[] };
       for (const update of json.result ?? []) {
         offset = update.update_id + 1;
-        const feito = await tratarUpdate(sb, update);
+        const feito = await handleUpdate(sb, update);
         if (feito) console.log(feito);
       }
     } catch (err) {

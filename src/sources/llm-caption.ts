@@ -2,38 +2,38 @@
  * Fonte que usa um LLM para escrever a legenda — SEM AMARRAR A FORNECEDOR.
  *
  * Esta é a resposta a "funciona com qualquer LLM?": o PostGate não fala com
- * modelo nenhum. Ele recebe uma função `completar(prompt) => texto`. Qualquer
+ * modelo nenhum. Ele recebe uma função `complete(prompt) => text`. Qualquer
  * coisa que saiba responder a isso serve — Ollama na sua máquina, Claude,
  * GPT, Gemini, Kimi, um endpoint interno da empresa, ou uma função que devolve
- * texto fixo num teste.
+ * text fixo num teste.
  *
  * Não há SDK aqui de propósito. Dependência de fornecedor dentro de uma
  * biblioteca de fila é como se herda um provedor que não se escolheu.
  *
- *   const fonte = new LlmLegenda({
- *     itens: async () => [{ ref: "1", link: "...", imagem: "...", assunto: "..." }],
- *     completar: async (p) => (await ollama(p)),      // ou qualquer outro
+ *   const fonte = new LlmCaption({
+ *     items: async () => [{ ref: "1", link: "...", image: "...", subject: "..." }],
+ *     complete: async (p) => (await ollama(p)),      // ou qualquer outro
  *   });
  */
 import type { ContentSource, Draft } from "../types";
 
-export type ItemBruto = {
+export type RawItem = {
   ref?: string;
   link: string;
-  imagem?: string;
+  image?: string;
   /** O que o modelo precisa saber para escrever. */
-  assunto: string;
+  subject: string;
 };
 
-export type Completar = (prompt: string) => Promise<string>;
+export type Complete = (prompt: string) => Promise<string>;
 
-export type OpcoesLlm = {
-  itens: (count: number) => Promise<ItemBruto[]>;
-  completar: Completar;
+export type LlmOptions = {
+  items: (count: number) => Promise<RawItem[]>;
+  complete: Complete;
   /** Instrução de voz. Sem isto, todo post sai com a mesma cara de anúncio. */
-  instrucao?: string;
+  instruction?: string;
   /** Limite de caracteres da legenda. O Instagram corta em 2200. */
-  limite?: number;
+  limit?: number;
 };
 
 const INSTRUCAO_PADRAO = `Escreva a legenda de um post. Regras:
@@ -43,39 +43,39 @@ const INSTRUCAO_PADRAO = `Escreva a legenda de um post. Regras:
 - Sem hashtag inventada: no máximo três, específicas.
 Responda apenas com a legenda, sem aspas e sem comentário.`;
 
-export class LlmLegenda implements ContentSource {
-  readonly name = "llm-legenda";
+export class LlmCaption implements ContentSource {
+  readonly name = "llm-caption";
 
-  constructor(private readonly op: OpcoesLlm) {}
+  constructor(private readonly op: LlmOptions) {}
 
   async buildDrafts(count: number): Promise<Draft[]> {
-    const itens = await this.op.itens(count);
-    const limite = this.op.limite ?? 2200;
-    const rascunhos: Draft[] = [];
+    const items = await this.op.items(count);
+    const limit = this.op.limit ?? 2200;
+    const drafts: Draft[] = [];
 
-    for (const item of itens) {
-      const prompt = `${this.op.instrucao ?? INSTRUCAO_PADRAO}\n\nMaterial:\n${item.assunto}\n\nLink: ${item.link}`;
-      const texto = (await this.op.completar(prompt)).trim();
+    for (const item of items) {
+      const prompt = `${this.op.instruction ?? INSTRUCAO_PADRAO}\n\nMaterial:\n${item.subject}\n\nLink: ${item.link}`;
+      const text = (await this.op.complete(prompt)).trim();
 
       // Modelo que devolve nada, ou devolve um romance, não vira post. Recusar
       // aqui é mais barato que descobrir no card de aprovação — ou pior, no ar.
-      if (!texto) {
+      if (!text) {
         console.warn(`${this.name}: modelo devolveu vazio para ${item.ref ?? item.link}`);
         continue;
       }
-      if (texto.length > limite) {
-        console.warn(`${this.name}: legenda de ${texto.length} caracteres passa de ${limite}; descartada`);
+      if (text.length > limit) {
+        console.warn(`${this.name}: legenda de ${text.length} caracteres passa de ${limit}; descartada`);
         continue;
       }
 
-      rascunhos.push({
+      drafts.push({
         sourceRef: item.ref ?? null,
         linkUrl: item.link,
-        imageUrl: item.imagem ?? null,
-        caption: texto,
+        imageUrl: item.image ?? null,
+        caption: text,
         kind: "feed",
       });
     }
-    return rascunhos;
+    return drafts;
   }
 }

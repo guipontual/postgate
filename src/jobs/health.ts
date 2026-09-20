@@ -5,16 +5,16 @@
  * O caso que motivou: silêncio parece calmaria. Fila vazia porque tudo foi
  * publicado e fila vazia porque o gerador morreu têm a mesma aparência.
  */
-import { exigir } from "../config";
-import { conectar, TABELA } from "../queue";
-import { avisar } from "../approval/telegram";
+import { requireEnv } from "../config";
+import { connect, TABLE } from "../queue";
+import { notify } from "../approval/telegram";
 
 async function main(): Promise<void> {
-  exigir(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
-  const sb = conectar();
+  requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
+  const sb = connect();
 
   const contar = async (status: string): Promise<number> => {
-    const { count } = await sb.from(TABELA).select("id", { count: "exact", head: true }).eq("status", status);
+    const { count } = await sb.from(TABLE).select("id", { count: "exact", head: true }).eq("status", status);
     return count ?? 0;
   };
 
@@ -31,7 +31,7 @@ async function main(): Promise<void> {
   if (agendados === 0 && pendentes === 0) problemas.push("fila vazia: o gerador pode ter parado");
 
   console.log(`pendentes ${pendentes} · agendados ${agendados} · falhos ${falhos}`);
-  if (problemas.length > 0) await avisar(`Fila de posts:\n- ${problemas.join("\n- ")}`);
+  if (problemas.length > 0) await notify(`Fila de posts:\n- ${problemas.join("\n- ")}`);
 }
 
 main();

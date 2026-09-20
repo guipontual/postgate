@@ -67,11 +67,11 @@ interface ContentSource {
 If your source is a `SELECT` and a string template, great — that is exactly how
 the original system works, with no LLM at all, publishing since 2026.
 
-If you do want a model writing the caption, use `src/sources/llm-legenda.ts`.
+If you do want a model writing the caption, use `src/sources/llm-caption.ts`.
 It takes **a function**, not an SDK:
 
 ```ts
-const source = new LlmLegenda({
+const source = new LlmCaption({
   itens: async () => myDatabase.findNews(),
   completar: async (prompt) => callYourModel(prompt),   // Ollama, Claude, GPT, Gemini…
 });
@@ -88,7 +88,7 @@ npm install
 cp .env.example .env
 psql "$DATABASE_URL" -f migrations/0001_postgate_queue.sql
 
-echo '[{"ref":"1","link":"https://example.com","imagem":"https://picsum.photos/1080","texto":"First post."}]' > conteudo.json
+echo '[{"ref":"1","link":"https://example.com","image":"https://picsum.photos/1080","text":"First post."}]' > content.json
 
 npm run enqueue                  # propose, and send the card to Telegram
 npm run approve-polling          # approve from your phone
@@ -104,7 +104,7 @@ that the credentials exist — before anything goes live.
 | mode | requires | when |
 |---|---|---|
 | **polling** — `npm run approve-polling` | nothing | home machine, CGNAT, no domain |
-| **webhook** — `tratarUpdate()` in your route | public HTTPS | already hosted |
+| **webhook** — `handleUpdate()` in your route | public HTTPS | already hosted |
 
 Telegram's webhook needs a public address with a certificate. Anyone behind
 CGNAT does not have one — and that is precisely what kept the original system
@@ -138,7 +138,8 @@ reading — and then the gate is worth nothing.
 - **Postgres.** Supabase works; nothing in the schema is specific to it.
 - **A Telegram bot** and the group where it posts the cards.
 - **An Instagram Business or Creator account and your own Meta app.** See
-  [docs/meta-setup.md](docs/meta-setup.md) — this cannot be packaged, the token
+  [docs/meta-setup.md](docs/meta-setup.md). On why the gate works the way it
+  does, see [docs/approval.md](docs/approval.md) — this cannot be packaged, the token
   is yours.
 
 ## Traps that already cost someone dearly
@@ -151,7 +152,7 @@ reading — and then the gate is worth nothing.
   here) and `graph.facebook.com` (Facebook Login + Page). A token for one is
   rejected by the other, and the error is identical to an expired token. Set
   `META_GRAPH_HOST` instead of minting a new token.
-- **The 60-day token expires.** `renovarToken()` exists; run it on a monthly
+- **The 60-day token expires.** `refreshToken()` exists; run it on a monthly
   cron. Forgetting means finding out on a Sunday that nothing has posted in
   weeks.
 - **Stories take no caption.** The text has to live in the 1080×1920 artwork.

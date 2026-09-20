@@ -1,5 +1,5 @@
 /**
- * Os tipos que separam o genérico do seu assunto.
+ * Os tipos que separam o genérico do seu subject.
  *
  * Isto nasceu de um sistema que publicava imóveis. O que era específico —
  * "imóvel", "desconto", "financiamento" — virou uma interface: a fila, a
@@ -20,7 +20,7 @@ export type Draft = {
   imageUrl: string | null;
   /** Vídeo do reel. Mesma exigência. */
   videoUrl?: string | null;
-  /** Legenda. Stories ignora — lá o texto vive na própria arte. */
+  /** Legenda. Stories ignora — lá o text vive na própria arte. */
   caption: string;
   kind?: PostKind;
 };
@@ -30,7 +30,7 @@ export type PostKind = "feed" | "story" | "reel";
 /**
  * Estados da fila, e o que cada um significa na prática:
  *
- *  pending   — esperando um humano decidir
+ *  pending   — esperando um humano decide
  *  scheduled — aprovado; publica quando `scheduled_at` chegar
  *  posted    — está no ar (ponto sem volta)
  *  rejected  — humano recusou
@@ -56,7 +56,7 @@ export type QueueItem = {
 /**
  * De onde vêm os posts. Implemente uma destas e o resto do sistema funciona.
  *
- * A única regra: devolva itens já prontos para um humano aprovar. Filtrar o
+ * A única regra: devolva items já prontos para um humano aprovar. Filtrar o
  * que não presta é trabalho da fonte, não da fila — quem aprova não deve ser
  * usado como filtro de qualidade, ou ele aprende a apertar "recusar" no
  * automático e para de ler.
