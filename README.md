@@ -144,6 +144,11 @@ portão deixa de valer alguma coisa.
   genérico. O `--dry-run` confere isso antes.
 - **O token de 60 dias expira.** `renovarToken()` existe; rode num cron mensal.
   Esquecer é descobrir num domingo que nada é publicado há semanas.
+- **"Cannot parse access token" quase nunca é o token.** A Meta tem dois
+  caminhos com hosts diferentes: `graph.instagram.com` (Instagram Login, o
+  padrão aqui) e `graph.facebook.com` (Login do Facebook + Página). Token de um
+  não é aceito pelo outro, e o erro é idêntico ao de token expirado. Ajuste
+  `META_GRAPH_HOST` em vez de gerar token novo.
 - **Stories não aceita legenda.** O texto precisa estar na arte 1080×1920.
 - **25 posts por 24h** é o limite da conta. A fila respeita a sua cadência, não
   o limite: enfileirar 40 faz os últimos falharem.
@@ -154,8 +159,11 @@ Extraído e reorganizado a partir de um sistema em produção. Verificado até
 aqui: typecheck limpo, testes passando, e a fila exercitada contra Postgres de
 verdade (enfileirar, deduplicar, decidir, vencer, idempotência da decisão).
 
-Não verificado ainda: uma publicação real de ponta a ponta no Instagram a
-partir deste código reorganizado.
+Também verificado: o cliente do Instagram conversa com a conta real e a
+credencial é aceita (chamada de leitura, sem publicar).
+
+Não verificado ainda: uma publicação real de ponta a ponta a partir deste
+código reorganizado.
 
 ## Licença
 

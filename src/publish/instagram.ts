@@ -10,7 +10,21 @@
  */
 import { env } from "../config";
 
-const GRAPH = "https://graph.facebook.com/v21.0";
+/**
+ * A Meta tem DOIS caminhos para publicar no Instagram, com hosts diferentes, e
+ * o token de um não é aceito pelo outro:
+ *
+ *   graph.instagram.com  — "Instagram API com Instagram Login". Você loga com
+ *                          a própria conta do Instagram. É o caminho mais
+ *                          curto e o padrão aqui.
+ *   graph.facebook.com   — "Instagram Graph API" via Login do Facebook, com
+ *                          Página vinculada. Use se o seu app foi montado assim.
+ *
+ * Errar o host devolve "Cannot parse access token", que parece token expirado
+ * e não é — custou uma renovação de token quase feita à toa. Se você vir essa
+ * mensagem com um token recém-gerado, é o host.
+ */
+const GRAPH = (process.env.META_GRAPH_HOST ?? "https://graph.instagram.com") + "/v21.0";
 
 async function post(caminho: string, params: Record<string, string>): Promise<any> {
   const body = new URLSearchParams({ ...params, access_token: env("META_LONG_LIVED_TOKEN") });
@@ -70,7 +84,8 @@ export async function publicarReel(videoUrl: string, caption: string): Promise<s
  */
 export async function renovarToken(): Promise<string> {
   const res = await fetch(
-    `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${env("META_LONG_LIVED_TOKEN")}`
+    `${process.env.META_GRAPH_HOST ?? "https://graph.instagram.com"}/refresh_access_token` +
+      `?grant_type=ig_refresh_token&access_token=${env("META_LONG_LIVED_TOKEN")}`
   );
   const json = (await res.json()) as { access_token?: string };
   if (!res.ok || !json.access_token) throw new Error(`renovação falhou: ${JSON.stringify(json)}`);
