@@ -1,24 +1,40 @@
-# Instagram: o que a Meta exige
+# Instagram: what Meta requires
 
-Nada disto dá para empacotar — o token é da sua conta.
+*[Português](meta-setup.pt-BR.md)*
 
-1. **Conta Instagram Business ou Creator.** Conta pessoal não publica por API.
-2. **Página do Facebook vinculada** à conta do Instagram.
-3. **App na Meta** (developers.facebook.com) com o produto *Instagram Graph
-   API*, e as permissões `instagram_basic`, `instagram_content_publish`,
-   `pages_show_list`.
-4. **Token de longa duração** (60 dias) e o **IG User ID** da conta.
+None of this can be packaged — the token belongs to your account.
 
-Guarde como `META_LONG_LIVED_TOKEN` e `IG_USER_ID`.
+1. **An Instagram Business or Creator account.** Personal accounts cannot
+   publish through the API.
+2. **A linked Facebook Page**, if you take the Facebook Login path.
+3. **A Meta app** (developers.facebook.com) with the Instagram product enabled
+   and the `instagram_basic` and `instagram_content_publish` permissions.
+4. **A long-lived token** (60 days) and the account's **IG User ID**.
 
-## O que morde depois
+Store them as `META_LONG_LIVED_TOKEN` and `IG_USER_ID`.
 
-- **60 dias passam.** Chame `renovarToken()` num cron mensal e grave o valor
-  novo onde você guarda segredo. Renovar não estende para sempre: é preciso
-  renovar antes de expirar, senão o caminho é refazer tudo à mão.
-- **Limite de publicação**: 25 posts por 24h por conta. A fila respeita a sua
-  cadência, não o limite — se você enfileirar 40, os últimos falham.
-- **Stories não aceita legenda.** O texto precisa estar na própria arte
-  1080×1920. A legenda continua útil no card de aprovação.
-- **Reels demora.** O container passa por processamento antes de poder
-  publicar; o código espera. Vídeo grande pode estourar o tempo.
+## Which host?
+
+Meta has two paths, and a token for one is rejected by the other:
+
+| path | host | set `META_GRAPH_HOST` to |
+|---|---|---|
+| Instagram API with Instagram Login | `graph.instagram.com` | *(default, leave empty)* |
+| Instagram Graph API via Facebook Login | `graph.facebook.com` | `https://graph.facebook.com` |
+
+Getting this wrong returns **"Cannot parse access token"**, which looks exactly
+like an expired token and is not. If you see that message with a freshly minted
+token, it is the host.
+
+## What bites you later
+
+- **60 days go by.** Call `renovarToken()` on a monthly cron and store the new
+  value wherever you keep secrets. Refreshing does not extend forever, and it
+  only works from a *currently valid* token — let it expire and you are back to
+  minting one by hand.
+- **Publishing limit**: 25 posts per 24h per account. The queue respects your
+  cadence, not the limit — enqueue 40 and the last ones fail.
+- **Stories take no caption.** The text must be in the 1080×1920 artwork
+  itself. The caption stays useful on the approval card.
+- **Reels take time.** The container goes through processing before it can be
+  published; the code waits. A large video can exceed the wait.

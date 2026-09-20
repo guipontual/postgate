@@ -3,54 +3,59 @@
 </p>
 
 <p align="center">
-  <b>Fila, aprovação humana e publicação agendada para redes sociais.</b><br>
-  Um agente propõe. Uma pessoa aprova do celular. O post vai ao ar na hora certa.
+  <b>English</b> · <a href="README.pt-BR.md">Português</a>
 </p>
 
 <p align="center">
-  <img alt="MIT" src="https://img.shields.io/badge/licença-MIT-4ADE80">
+  <b>A queue, a human approval gate, and scheduled publishing for social media.</b><br>
+  An agent proposes. A person approves from their phone. The post goes out on time.
+</p>
+
+<p align="center">
+  <img alt="MIT" src="https://img.shields.io/badge/license-MIT-4ADE80">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.6-3178C6">
   <img alt="Node" src="https://img.shields.io/badge/Node-%E2%89%A520-5FA04E">
-  <img alt="LLM" src="https://img.shields.io/badge/LLM-nenhum%20obrigatório-8FA3BF">
+  <img alt="LLM" src="https://img.shields.io/badge/LLM-none%20required-8FA3BF">
 </p>
 
 ---
 
-## O problema
+## The problem
 
-Automatizar post em rede social é fácil até o dia em que a automação publica
-algo errado. Aí você descobre três coisas de uma vez: que ninguém revisou, que
-o erro é público, e que não existe botão de desfazer que apague o print que
-alguém já tirou.
+Automating social media is easy right up until the day the automation posts
+something wrong. Then you learn three things at once: nobody reviewed it, the
+mistake is public, and there is no undo button that erases the screenshot
+somebody already took.
 
-A resposta comum é desligar a automação e voltar a postar à mão. PostGate é a
-outra resposta: **mantenha a automação, ponha um humano no portão.**
+The usual reaction is to switch the automation off and go back to posting by
+hand. PostGate is the other answer: **keep the automation, put a human at the
+gate.**
 
-## Como funciona
+## How it works
 
 ```
-   sua fonte          fila            Telegram          decisão           cron
-  ───────────▶  ─────────────▶  ─────────────────▶  ────────────▶  ─────────────▶
-   buildDrafts    pending          card com dois       scheduled       publica no
-                                   botões              + horário       horário marcado
+   your source        queue           Telegram          decision          cron
+  ─────────────▶  ───────────▶  ────────────────▶  ─────────────▶  ──────────────▶
+   buildDrafts      pending        card with two       scheduled        publishes at
+                                   buttons             + a time         the set time
 ```
 
-Cinco peças, cada uma podendo falhar sozinha sem derrubar as outras:
+Five pieces, each able to fail on its own without taking the others down:
 
-| peça | o que faz |
+| piece | what it does |
 |---|---|
-| **fonte** | decide **o que** postar. É a única parte que você escreve. |
-| **fila** | guarda o rascunho e o estado. Postgres comum. |
-| **portão** | manda para o Telegram e espera uma pessoa decidir. |
-| **publicador** | um cron que publica o que já foi aprovado e venceu. |
-| **saúde** | avisa quando a fila para de andar. |
+| **source** | decides **what** to post. The only part you write. |
+| **queue** | holds the draft and its state. Plain Postgres. |
+| **gate** | sends it to Telegram and waits for a person to decide. |
+| **publisher** | a cron that posts what was approved and is now due. |
+| **health** | tells you when the queue stops moving. |
 
-## Funciona com qual LLM?
+## Which LLM does it work with?
 
-**Com todos — porque não usa nenhum.**
+**All of them — because it uses none.**
 
-PostGate não fala com modelo de linguagem. Ele recebe rascunhos prontos de uma
-fonte que você implementa:
+PostGate never talks to a language model. It takes finished drafts from a
+source you implement:
 
 ```ts
 interface ContentSource {
@@ -59,112 +64,118 @@ interface ContentSource {
 }
 ```
 
-Se a sua fonte é um `SELECT` no banco com um template de string, ótimo — é
-assim que o sistema de origem funciona, sem LLM nenhum, publicando desde 2026.
+If your source is a `SELECT` and a string template, great — that is exactly how
+the original system works, with no LLM at all, publishing since 2026.
 
-Se você quiser um modelo escrevendo a legenda, use `src/sources/llm-legenda.ts`.
-Ele recebe **uma função**, não um SDK:
+If you do want a model writing the caption, use `src/sources/llm-legenda.ts`.
+It takes **a function**, not an SDK:
 
 ```ts
-const fonte = new LlmLegenda({
-  itens: async () => meuBanco.buscarNovidades(),
-  completar: async (prompt) => chamarSeuModelo(prompt),   // Ollama, Claude, GPT, Gemini…
+const source = new LlmLegenda({
+  itens: async () => myDatabase.findNews(),
+  completar: async (prompt) => callYourModel(prompt),   // Ollama, Claude, GPT, Gemini…
 });
 ```
 
-Qualquer coisa que saiba responder `prompt → texto` serve, inclusive uma
-função fixa num teste. **Não há dependência de fornecedor no projeto, de
-propósito**: biblioteca de fila que traz SDK é como se herda um provedor que
-não se escolheu.
+Anything that answers `prompt → text` works, including a fixed function in a
+test. **There is deliberately no vendor SDK in this project**: a queue library
+that ships an SDK is how you inherit a provider you never chose.
 
-## Começando em cinco minutos
+## Five minutes to running
 
 ```bash
 npm install
 cp .env.example .env
 psql "$DATABASE_URL" -f migrations/0001_postgate_queue.sql
 
-echo '[{"ref":"1","link":"https://exemplo.com","imagem":"https://picsum.photos/1080","texto":"Primeiro post."}]' > conteudo.json
+echo '[{"ref":"1","link":"https://example.com","imagem":"https://picsum.photos/1080","texto":"First post."}]' > conteudo.json
 
-npm run enqueue                  # propõe e manda o card para o Telegram
-npm run approve-polling          # aprove pelo celular
-npm run publish-due -- --dry-run # confere tudo sem publicar nada
+npm run enqueue                  # propose, and send the card to Telegram
+npm run approve-polling          # approve from your phone
+npm run publish-due -- --dry-run # check everything without publishing
 ```
 
-O `--dry-run` é o passo que evita a primeira decepção: ele confirma que a
-**Meta consegue baixar a sua mídia**, que a legenda cabe no limite, e que as
-credenciais existem — antes de qualquer coisa ir ao ar.
+`--dry-run` is the step that spares you the first disappointment: it confirms
+that **Meta can download your media**, that the caption fits the limit, and
+that the credentials exist — before anything goes live.
 
-## Os dois modos de aprovação
+## Two approval modes
 
-| modo | exige | quando |
+| mode | requires | when |
 |---|---|---|
-| **polling** — `npm run approve-polling` | nada | máquina em casa, CGNAT, sem domínio |
-| **webhook** — `tratarUpdate()` na sua rota | HTTPS público | app já hospedado |
+| **polling** — `npm run approve-polling` | nothing | home machine, CGNAT, no domain |
+| **webhook** — `tratarUpdate()` in your route | public HTTPS | already hosted |
 
-O webhook do Telegram exige endereço público com certificado. Quem roda atrás
-de CGNAT não tem isso — e foi exatamente o que manteve o sistema de origem
-preso a uma hospedagem por meses. O polling remove a amarra: para aprovar um
-post, alguns segundos a mais não custam nada.
+Telegram's webhook needs a public address with a certificate. Anyone behind
+CGNAT does not have one — and that is precisely what kept the original system
+tied to a hosting provider for months. Polling removes the constraint: a few
+extra seconds to approve a post costs nothing.
 
-## Decisões de projeto, e o incidente por trás de cada uma
+## Design decisions, and the incident behind each
 
-Este projeto foi extraído de um sistema em produção. As três decisões abaixo
-não são preferência de estilo — cada uma é a cicatriz de um problema real.
+This project was extracted from a system in production. The three decisions
+below are not style preferences — each one is the scar of a real problem.
 
-**1. Aprovar agenda; não publica.**
-Publicar no instante da aprovação amarra o horário do post ao momento em que
-alguém olhou o celular. Separado, dá para aprovar às 23h um post que vai ao ar
-às 9h — e o servidor pode estar desligado no meio.
+**1. Approving schedules; it does not publish.**
+Publishing the instant someone approves ties the post's timing to the moment
+someone happened to look at their phone. Kept separate, you can approve at 11pm
+something that goes out at 9am — and the server may be off in between.
 
-**2. Publicar e registrar são passos separados.**
-Quando os dois viviam no mesmo `try`, uma publicação bem-sucedida com gravação
-falha caía no `catch` e virava `failed` — **com a mídia já no ar**. Hoje, se o
-registro falhar depois da publicação, o sistema grita em vez de mentir: avisa
-que o post existe, dá o `media_id`, e pede correção manual. Nunca marca falho
-o que foi publicado.
+**2. Publishing and recording are separate steps.**
+When both lived in one `try`, a successful publish with a failed database write
+fell into the `catch` and was marked `failed` — **with the media already
+live**. Today, if the write fails after publishing, the system shouts instead
+of lying: it reports that the post exists, hands you the `media_id`, and asks
+for a manual fix. It never marks as failed something that went out.
 
-**3. O portão é de aprovação, não de controle de qualidade.**
-Filtrar o que não presta é trabalho da fonte. Se quem aprova vira filtro de
-qualidade, aprende a apertar "recusar" no automático e para de ler — e aí o
-portão deixa de valer alguma coisa.
+**3. The gate is for approval, not quality control.**
+Filtering out what is not good enough is the source's job. If the approver
+becomes the quality filter, they learn to hit "reject" on autopilot and stop
+reading — and then the gate is worth nothing.
 
-## O que você precisa ter
+## What you need
 
-- **Postgres.** Supabase serve; nada no schema é exclusivo dele.
-- **Um bot do Telegram** e o grupo onde ele manda os cards.
-- **Instagram Business ou Creator e um app seu na Meta.** Veja
-  [docs/meta-setup.md](docs/meta-setup.md) — isso não dá para empacotar, o
-  token é da sua conta.
+- **Postgres.** Supabase works; nothing in the schema is specific to it.
+- **A Telegram bot** and the group where it posts the cards.
+- **An Instagram Business or Creator account and your own Meta app.** See
+  [docs/meta-setup.md](docs/meta-setup.md) — this cannot be packaged, the token
+  is yours.
 
-## Armadilhas que já custaram caro
+## Traps that already cost someone dearly
 
-- **A mídia é baixada pelos servidores da Meta, não pelo seu.** URL que abre no
-  seu navegador mas exige sessão, ou responde só na sua rede, falha com erro
-  genérico. O `--dry-run` confere isso antes.
-- **O token de 60 dias expira.** `renovarToken()` existe; rode num cron mensal.
-  Esquecer é descobrir num domingo que nada é publicado há semanas.
-- **"Cannot parse access token" quase nunca é o token.** A Meta tem dois
-  caminhos com hosts diferentes: `graph.instagram.com` (Instagram Login, o
-  padrão aqui) e `graph.facebook.com` (Login do Facebook + Página). Token de um
-  não é aceito pelo outro, e o erro é idêntico ao de token expirado. Ajuste
-  `META_GRAPH_HOST` em vez de gerar token novo.
-- **Stories não aceita legenda.** O texto precisa estar na arte 1080×1920.
-- **25 posts por 24h** é o limite da conta. A fila respeita a sua cadência, não
-  o limite: enfileirar 40 faz os últimos falharem.
+- **Media is downloaded by Meta's servers, not yours.** A URL that opens in
+  your browser but needs a session, or only answers on your network, fails with
+  a generic error. `--dry-run` checks this first.
+- **"Cannot parse access token" is almost never the token.** Meta has two paths
+  with different hosts: `graph.instagram.com` (Instagram Login, the default
+  here) and `graph.facebook.com` (Facebook Login + Page). A token for one is
+  rejected by the other, and the error is identical to an expired token. Set
+  `META_GRAPH_HOST` instead of minting a new token.
+- **The 60-day token expires.** `renovarToken()` exists; run it on a monthly
+  cron. Forgetting means finding out on a Sunday that nothing has posted in
+  weeks.
+- **Stories take no caption.** The text has to live in the 1080×1920 artwork.
+- **25 posts per 24h** is the account limit. The queue respects your cadence,
+  not the limit: enqueue 40 and the last ones fail.
 
-## Estado
+## Status
 
-Extraído e reorganizado a partir de um sistema em produção. Verificado até
-aqui: typecheck limpo, testes passando, e a fila exercitada contra Postgres de
-verdade (enfileirar, deduplicar, decidir, vencer, idempotência da decisão).
+Extracted and reorganised from a system in production. Verified so far: clean
+typecheck, passing tests, the queue exercised against a real Postgres (enqueue,
+deduplicate, decide, come due, decision idempotency), and the Instagram client
+reaching a real account with its credential accepted (read-only call, nothing
+published).
 
-Também verificado: o cliente do Instagram conversa com a conta real e a
-credencial é aceita (chamada de leitura, sem publicar).
+Not verified yet: a real end-to-end publish from this reorganised code.
 
-Não verificado ainda: uma publicação real de ponta a ponta a partir deste
-código reorganizado.
+## A note on the code comments
 
-## Licença
+The comments in this codebase are in Portuguese. They are not decoration — they
+carry the reasoning and the incidents behind each decision, which is most of
+what this project is worth. Translating them is
+[issue #1](../../issues/1); until then, `README.pt-BR.md` and the docs carry
+the same reasoning in prose.
 
-MIT — veja [LICENSE](LICENSE).
+## License
+
+MIT — see [LICENSE](LICENSE).
